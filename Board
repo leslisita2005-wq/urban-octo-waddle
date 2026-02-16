@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pizarra para Predicar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #003366;
+    }
+    #verse {
+      text-align: center;
+      font-style: italic;
+      color: #004080;
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #e0f0ff;
+      border-radius: 8px;
+    }
+    .board {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+    .day {
+      background: #cce0ff;
+      border-radius: 8px;
+      padding: 10px;
+      width: 13%;
+      min-height: 300px;
+    }
+    .day h2 {
+      text-align: center;
+      color: #003366;
+    }
+    .task {
+      background: #fff;
+      margin: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      cursor: grab;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-size: 14px;
+    }
+    .add-btn {
+      display: block;
+      margin: 10px auto;
+      padding: 5px 10px;
+      background: #004080;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #loginForm {
+      text-align: center;
+      margin-top: 50px;
+    }
+    #loginForm input {
+      display: block;
+      margin: 10px auto;
+      padding: 8px;
+      width: 200px;
+    }
+    #loginForm button {
+      margin: 5px;
+      padding: 8px 15px;
+      background: #004080;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pizarra para Predicar</h1>
+
+  <!-- Formulario de login -->
+  <div id="loginForm">
+    <h2>Iniciar sesión</h2>
+    <input type="email" id="email" placeholder="Correo">
+    <input type="password" id="password" placeholder="Contraseña">
+    <button onclick="login()">Entrar</button>
+    <button onclick="register()">Registrarse</button>
+  </div>
+
+  <!-- Pizarra protegida -->
+  <div id="app" style="display:none;">
+    <div id="verse"></div>
+    <div class="board">
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Lunes</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Martes</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Miércoles</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Jueves</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Viernes</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Sábado</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+      <div class="day" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h2>Domingo</h2>
+        <button class="add-btn" onclick="addTask(this)">Añadir</button>
+      </div>
+    </div>
+    <button onclick="logout()">Cerrar sesión</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+  <script>
+    // ⚠️ Reemplaza con tu configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROYECTO.firebaseapp.com",
+      projectId: "TU_PROYECTO",
+    };
+
+    // Inicializar Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Login
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(user => {
+          document.getElementById("app").style.display = "block";
+          document.getElementById("loginForm").style.display = "none";
+          showRandomVerse();
+          loadBoard();
+        })
+        .catch(error => alert(error.message));
+    }
+
+    // Registro
+    function register() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(user => alert("Usuario registrado: " + user.user.email))
+        .catch(error => alert(error.message));
+    }
+
+    // Logout
+    function logout() {
+      auth.signOut().then(() => {
+        document.getElementById("app").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+      });
+    }
+
+    // --- Tu lógica de la pizarra ---
+    let taskId = 0;
+    const verses = [
+      "Porque de tal manera amó Dios al mundo. – Juan 3:16",
+      "El amor es paciente, es bondadoso. – 1 Corintios 13:4",
+      "Dios es amor. – 1 Juan 4:8",
+      "Con amor eterno te he amado. – Jeremías 31:3",
+      "Nada podrá separarnos del amor de Dios. – Romanos 8:39"
+    ];
+
+    function showRandomVerse() {
+      const verse = verses[Math.floor(Math.random() * verses.length)];
+      document.getElementById("verse").textContent = verse;
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+    function drop(ev) {
+      ev.preventDefault();
+      let data = ev.dataTransfer.getData("text");
+      ev.target.closest(".day").appendChild(document.getElementById(data));
+      saveBoard();
+    }
+
+    function addTask(button) {
+      let texto = prompt("Escribe el horario y predicador (ej: 10:00 - Juan Pérez)");
+      if (texto) {
+        let fecha = new Date().toLocaleDateString("es-ES");
+        let task = document.createElement("div");
+        task.className = "task";
+        task.id = "task" + taskId++;
+        task.draggable = true;
+        task.ondragstart = drag;
+        task.innerText = texto + " | Fecha: " + fecha;
+        button.parentNode.appendChild(task);
+        saveBoard();
+      }
+    }
+
+    function saveBoard() {
+      localStorage.setItem("pizarraKanban", document.querySelector(".board").innerHTML);
+    }
+
+    function loadBoard() {
+      const saved = localStorage.getItem("pizarraKanban");
+      if (saved) {
+        document.querySelector(".board").innerHTML = saved;
+        document.querySelectorAll(".task").forEach(task => {
+          task.draggable = true;
+          task.ondragstart = drag;
+        });
+      }
+    }
+  </script>
+</body>
+</html>
